@@ -25,7 +25,7 @@ class Page extends Item
         }
     }
 
-    public static function add(GatheringDataSourceConfiguration $configuration, Page $c)
+    public static function save(GatheringDataSourceConfiguration $configuration, \Page $c)
     {
         $gathering = $configuration->getGatheringObject();
         try {

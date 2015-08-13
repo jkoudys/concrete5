@@ -11,7 +11,7 @@ class RssFeed extends Item {
 		return GatheringItem::getListByKey($ags, $mixed->get_link());
 	}
 	
-	public static function add(GatheringDataSourceConfiguration $configuration, $post) {
+	public static function save(GatheringDataSourceConfiguration $configuration, $post) {
 		$gathering = $configuration->getGatheringObject();
 		try {
 			// we wrap this in a try because it MIGHT fail if it's a duplicate
