@@ -21,7 +21,7 @@ class EditPageThemePageAccess extends PageAccess {
 		return $newPA;
 	}
 
-	public function save($args) {
+	public function save(array $args = array()) {
 		parent::save();
 		$db = Loader::db();
 		$db->Execute('delete from PagePermissionThemeAccessList where paID = ?', array($this->getPermissionAccessID()));
