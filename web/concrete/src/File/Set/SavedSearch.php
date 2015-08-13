@@ -7,7 +7,7 @@ use FileSet;
 class SavedSearch extends Set
 {
 
-    public static function add($name, $searchRequest, $searchColumnsObject)
+    public static function save($name, $searchRequest, $searchColumnsObject)
     {
         $fs = parent::createAndGetSet($name, FileSet::TYPE_SAVED_SEARCH);
         $db = Loader::db();

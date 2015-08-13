@@ -146,11 +146,11 @@ class Set implements \Concrete\Core\Permission\ObjectInterface
      * Adds a File set
      * @param string $setName
      * @param int $fsOverrideGlobalPermissions
-     * @param bool|\User $u
+     * @param null|\User|int $u Either the user object, or the user ID
      * @param int $type
      * @return Set
      */
-    public static function add($setName, $fsOverrideGlobalPermissions = 0, $u = false, $type = self::TYPE_PUBLIC)
+    public static function add($setName, $fsOverrideGlobalPermissions = 0, $u = null, $type = self::TYPE_PUBLIC)
     {
         if (is_object($u) && $u->isRegistered()) {
             $uID = $u->getUserID();
@@ -177,7 +177,6 @@ class Set implements \Concrete\Core\Permission\ObjectInterface
         Events::dispatch('on_file_set_add', $fe);
 
         return $fs;
-
     }
 
     /**
