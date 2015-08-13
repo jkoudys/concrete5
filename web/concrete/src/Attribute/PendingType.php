@@ -4,7 +4,11 @@ use \Concrete\Core\Foundation\Object;
 use Loader;
 class PendingType extends Type {
 
-	public static function getList() {
+	/**
+	 * @param null|string $akCategoryHandle Attribute key to filter list
+	 * @return array
+	 */
+	public static function getList($akCategoryHandle = null) {
 		$db = Loader::db();
 		$atHandles = $db->GetCol("select atHandle from AttributeTypes");
 
