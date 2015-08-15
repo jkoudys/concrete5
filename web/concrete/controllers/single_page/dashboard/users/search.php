@@ -474,7 +474,7 @@ class Search extends DashboardPageController
                 $groups[] = $obj;
             }
             $this->set('groupsJSON', Loader::helper('json')->encode($groups));
-            $attributes = UserAttributeKey::getList(true);
+            $attributes = UserAttributeKey::getList();
             $this->set('attributes', $attributes);
             $this->set('pageTitle', t('View/Edit %s', $this->user->getUserDisplayName()));
             switch ($status) {
