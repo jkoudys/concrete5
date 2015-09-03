@@ -257,12 +257,7 @@ class Controller extends AuthenticationTypeController
 
         /** @type \Concrete\Core\Permission\IPService $ip_service */
         $ip_service = \Core::make('ip');
-        $ip_service->logSignupRequest();
-
-        if ($banned = $ip_service->isBanned() || $ip_service->signupRequestThreshholdReached()) {
-            if ($banned) {
-                $ip_service->createIPBan();
-            }
+        if ($ip_service->isBanned()) {
             throw new \Exception($ip_service->getErrorMessage());
         }
 
