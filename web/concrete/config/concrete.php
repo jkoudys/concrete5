@@ -7,8 +7,8 @@ return array(
      *
      * @var string
      */
-    'version'           => '5.7.6a1',
-    'version_installed' => '5.7.6a1',
+    'version'           => '5.7.5.2a2',
+    'version_installed' => '5.7.5.2a2',
     'version_db' => '20150731000000', // the key of the latest database migration
 
     /**
@@ -364,31 +364,42 @@ return array(
         /**
          * Enable marketplace integration
          *
-         * @var bool
+         * @var bool concrete.marketplace.enabled
          */
         'enabled'            => true,
 
         /**
+         * Time it takes for a request to timeout
+         *
+         * @var int concrete.marketplace.request_timeout
+         */
+        'request_timeout'   => 30,
+
+        /**
          * Marketplace Token
          *
-         * @var null|string
+         * @var null|string concrete.marketplace.token
          */
         'token'              => null,
 
         /**
          * Marketplace Site url Token
          *
-         * @var null|string
+         * @var null|string concrete.marketplace.site_token
          */
         'site_token'         => null,
 
         /**
          * Enable intelligent search integration
+         *
+         * @var bool concrete.marketplace.intelligent_search
          */
         'intelligent_search' => true,
 
         /**
          * Log requests
+         *
+         * @var bool concrete.marketplace.log_requests
          */
         'log_requests' => false
     ),
@@ -485,6 +496,15 @@ return array(
             'default' => ASSETS_URL_IMAGES . '/avatar_none.png'
         )
     ),
+
+    'file_manager' => array(
+
+        'images' => array(
+            'use_exim_data_to_rotate_images' => false
+        )
+
+    ),
+
     'sitemap_xml'       => array(
         'file'      => 'sitemap.xml',
         'frequency' => 'weekly',

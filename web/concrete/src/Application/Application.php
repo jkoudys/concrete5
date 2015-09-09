@@ -39,6 +39,7 @@ class Application extends Container
 {
     protected $installed = null;
     protected $environment = null;
+    protected $packages = array();
 
     /**
      * Turns off the lights.
@@ -225,9 +226,9 @@ class Application extends Container
     }
 
     /**
-     * Run startup and localization events on any installed packages.
+     * Register package autoloaders. Has to come BEFORE session calls.
      */
-    public function setupPackages()
+    public function setupPackageAutoloaders()
     {
         $pla = \Concrete\Core\Package\PackageList::get();
         $pl = $pla->getPackages();
@@ -239,27 +240,36 @@ class Application extends Container
                 $pkg = Package::getClass($p->getPackageHandle());
                 if (is_object($pkg) && (!$pkg instanceof \Concrete\Core\Package\BrokenPackage)) {
                     $cl->registerPackage($pkg);
-                    // handle updates
-                    if (Config::get('concrete.updates.enable_auto_update_packages')) {
-                        $pkgInstalledVersion = $p->getPackageVersion();
-                        $pkgFileVersion = $pkg->getPackageVersion();
-                        if (version_compare($pkgFileVersion, $pkgInstalledVersion, '>')) {
-                            $currentLocale = Localization::activeLocale();
-                            if ($currentLocale != 'en_US') {
-                                Localization::changeLocale('en_US');
-                            }
-                            $p->upgradeCoreData();
-                            $p->upgrade();
-                            if ($currentLocale != 'en_US') {
-                                Localization::changeLocale($currentLocale);
-                            }
-                        }
+                    $this->packages[] = $pkg;
+                }
+            }
+        }
+    }
+    /**
+     * Run startup and localization events on any installed packages.
+     */
+    public function setupPackages()
+    {
+        foreach($this->packages as $pkg) {
+            // handle updates
+            if (Config::get('concrete.updates.enable_auto_update_packages')) {
+                $pkgInstalledVersion = $p->getPackageVersion();
+                $pkgFileVersion = $pkg->getPackageVersion();
+                if (version_compare($pkgFileVersion, $pkgInstalledVersion, '>')) {
+                    $currentLocale = Localization::activeLocale();
+                    if ($currentLocale != 'en_US') {
+                        Localization::changeLocale('en_US');
                     }
-                    $pkg->setupPackageLocalization();
-                    if (method_exists($pkg, 'on_start')) {
-                        $pkg->on_start();
+                    $p->upgradeCoreData();
+                    $p->upgrade();
+                    if ($currentLocale != 'en_US') {
+                        Localization::changeLocale($currentLocale);
                     }
                 }
+            }
+            $pkg->setupPackageLocalization();
+            if (method_exists($pkg, 'on_start')) {
+                $pkg->on_start();
             }
         }
         Config::set('app.bootstrap.packages_loaded', true);
@@ -359,6 +369,10 @@ class Application extends Container
      */
     public function dispatch(Request $request)
     {
+        // This is a crappy place for this, but it has to come AFTER the packages because sometimes packages
+        // want to replace legacy "tools" URLs with the new MVC, and the tools paths are so greedy they don't
+        // work unless they come at the end.
+        $this->registerLegacyRoutes();
         if ($this->installed) {
             $response = $this->getEarlyDispatchResponse();
         }
@@ -381,6 +395,20 @@ class Application extends Container
         }
 
         return $response;
+    }
+
+    protected function registerLegacyRoutes()
+    {
+
+        \Route::register("/tools/blocks/{btHandle}/{tool}",
+            '\Concrete\Core\Legacy\Controller\ToolController::displayBlock',
+            'blockTool',
+            array('tool' => '[A-Za-z0-9_/.]+')
+        );
+        \Route::register("/tools/{tool}", '\Concrete\Core\Legacy\Controller\ToolController::display',
+        '   tool',
+            array('tool' => '[A-Za-z0-9_/.]+')
+        );
     }
 
     protected function getEarlyDispatchResponse()

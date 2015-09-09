@@ -172,7 +172,7 @@ class Controller extends AttributeTypeController
         }
         $this->set('selectedOptionValues', $selectedOptionValues);
         $this->set('selectedOptions', $selectedOptions);
-        $this->requireAsset('jquery/ui');
+        $this->requireAsset('select2');
     }
 
     public function search()
@@ -206,42 +206,81 @@ class Controller extends AttributeTypeController
     {
         $this->load();
 
-        if ($this->akSelectAllowOtherValues && is_array($data['atSelectNewOption'])) {
-            $options = $this->getOptions();
+        $akSelectAllowMultipleValues = $this->akSelectAllowMultipleValues;
+        $akSelectAllowOtherValues = $this->akSelectAllowOtherValues;
+        if (!$akSelectAllowMultipleValues && !$akSelectAllowOtherValues) {
+            // select list. Only one option possible. No new options.
+            $option = Option::getByID($data['atSelectOptionValue']);
+            if (is_object($option)) {
+                $this->saveValue($option);
+            } else {
+                $this->saveValue(null);
+            }
 
-            foreach ($data['atSelectNewOption'] as $newoption) {
-                // check for duplicates
-                $existing = false;
-                foreach ($options as $opt) {
-                    if (strtolower(trim($newoption)) == strtolower(trim($opt->getSelectAttributeOptionValue(false)))) {
-                        $existing = $opt;
-                        break;
+        } else if ($akSelectAllowMultipleValues && !$akSelectAllowOtherValues) {
+            // checkbox list.  No new options.
+            $options = array();
+            if (is_array($data['atSelectOptionValue'])) {
+                foreach($data['atSelectOptionValue'] as $optionID) {
+                    $option = Option::getByID($optionID);
+                    if (is_object($option)) {
+                        $options[] = $option;
                     }
                 }
-                if ($existing instanceof Option) {
-                    $data['atSelectOptionID'][] = $existing->getSelectAttributeOptionID();
+            }
+            $this->saveValue($options);
+
+        } else if (!$akSelectAllowMultipleValues && $akSelectAllowOtherValues) {
+
+            // The post comes through in the select2 format. Either a SelectAttributeOption:ID item
+            // or a new item.
+            $option = false;
+            if ($data['atSelectOptionValue']) {
+                if (preg_match('/SelectAttributeOption\:(.+)/i',
+                    $data['atSelectOptionValue'], $matches)) {
+                    $option = Option::getByID($matches[1]);
                 } else {
-                    $optobj = Option::add($this->attributeKey, $newoption, 1);
-                    $data['atSelectOptionID'][] = $optobj->getSelectAttributeOptionID();
-                }
-            }
-        }
-
-        if (is_array($data['atSelectOptionID'])) {
-            $data['atSelectOptionID'] = array_unique($data['atSelectOptionID']);
-        }
-        $db = Database::get();
-        $db->Execute('delete from atSelectOptionsSelected where avID = ?', array($this->getAttributeValueID()));
-        if (is_array($data['atSelectOptionID'])) {
-            foreach ($data['atSelectOptionID'] as $optID) {
-                if ($optID > 0) {
-                    $db->Execute('insert into atSelectOptionsSelected (avID, atSelectOptionID) values (?, ?)', array($this->getAttributeValueID(), $optID));
-                    if ($this->akSelectAllowMultipleValues == false) {
-                        break;
+                    $option = Option::getByValue(trim($data['atSelectOptionValue']), $this->attributeKey);
+                    if (!is_object($option)) {
+                        $option = Option::add($this->attributeKey, trim($data['atSelectOptionValue']), true);
                     }
                 }
             }
+            if (is_object($option)) {
+                $this->saveValue($option);
+            } else {
+                $this->saveValue(null);
+            }
+
+        } else if ($akSelectAllowMultipleValues && $akSelectAllowOtherValues) {
+
+            // The post comes through in the select2 format. A comma-separated
+            // list of SelectAttributeOption:ID items and new items.
+            $options = array();
+            if ($data['atSelectOptionValue']) {
+                foreach(explode(',', $data['atSelectOptionValue']) as $value) {
+                    if (preg_match('/SelectAttributeOption\:(.+)/i', $value, $matches)) {
+                        $option = Option::getByID($matches[1]);
+                    } else {
+                        $option = Option::getByValue(trim($value), $this->attributeKey);
+                        if (!is_object($option)) {
+                            $option = Option::add($this->attributeKey, trim($value), true);
+                        }
+                    }
+
+                    if (is_object($option)) {
+                        $options[] = $option;
+                    }
+                }
+            }
+
+            if (count($options)) {
+                $this->saveValue($options);
+            } else {
+                $this->saveValue(null);
+            }
         }
+
     }
 
     // Sets select options for a particular attribute
@@ -256,23 +295,34 @@ class Controller extends AttributeTypeController
         $this->load();
         $options = array();
 
-        if (is_array($value) && $this->akSelectAllowMultipleValues) {
-            foreach ($value as $v) {
-                $opt = Option::getByValue($v, $this->attributeKey);
+        if ($value != null) {
+            if (is_array($value) && $this->akSelectAllowMultipleValues) {
+                foreach ($value as $v) {
+                    if ($v instanceof Option) {
+                        $opt = $v;
+                    } else {
+                        $opt = Option::getByValue($v, $this->attributeKey);
+                    }
+                    if (is_object($opt)) {
+                        $options[] = $opt;
+                    } elseif ($this->akSelectAllowOtherValues) {
+                        $options[] = Option::add($this->attributeKey, $v, true);
+                    }
+                }
+            } else {
+                if (is_array($value)) {
+                    $value = $value[0];
+                }
+
+                if ($value instanceof Option) {
+                    $opt = $value;
+                } else {
+                    $opt = Option::getByValue($value, $this->attributeKey);
+                }
+
                 if (is_object($opt)) {
                     $options[] = $opt;
-                } elseif ($this->akSelectAllowOtherValues) {
-                    $options[] = Option::add($this->attributeKey, $v, true);
                 }
-            }
-        } else {
-            if (is_array($value)) {
-                $value = $value[0];
-            }
-
-            $opt = Option::getByValue($value, $this->attributeKey);
-            if (is_object($opt)) {
-                $options[] = $opt;
             }
         }
 
@@ -424,15 +474,50 @@ class Controller extends AttributeTypeController
         return $list;
     }
 
+    /**
+     * Used by select2. Automatically takes a value request and converts it into tag/text key value pairs.
+     * New options are just text/tag, whereas existing ones are SelectAttributeOption:ID/text
+     */
+    public function action_load_autocomplete_selected_value()
+    {
+        $r = \Request::getInstance();
+        $value = $r->query->get('value');
+        $values = explode(',', $value);
+        $response = array();
+        foreach($values as $value) {
+            $value = trim($value);
+            $o = new \stdClass;
+            if (strpos($value, 'SelectAttributeOption:') === 0) {
+                $optionID = substr($value, 22);
+                $option = Option::getByID($optionID);
+                if (is_object($option)) {
+                    $o->id = $value;
+                    $o->text = $option->getSelectAttributeOptionValue();
+                }
+            } else {
+                $o->id = $value;
+                $o->text = $value;
+            }
+
+            $response[] = $o;
+        }
+
+        print json_encode($response);
+        \Core::shutdown();
+    }
+
     public function action_load_autocomplete_values()
     {
         $this->load();
         $values = array();
             // now, if the current instance of the attribute key allows us to do autocomplete, we return all the values
-        if ($this->akSelectAllowMultipleValues && $this->akSelectAllowOtherValues) {
-            $options = $this->getOptions($_GET['term'] . '%');
+        if ($this->akSelectAllowOtherValues) {
+            $options = $this->getOptions($_GET['q'] . '%');
             foreach ($options as $opt) {
-                $values[] = $opt->getSelectAttributeOptionValue(false);
+                $o = new \stdClass;
+                $o->id = 'SelectAttributeOption:' . $opt->getSelectAttributeOptionID();
+                $o->text = $opt->getSelectAttributeOptionValue(false);
+                $values[] = $o;
             }
         }
         print json_encode($values);

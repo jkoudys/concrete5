@@ -1,6 +1,7 @@
 <?php
 namespace Concrete\Core\Page\Type\Composer\Control;
 
+use Concrete\Core\Block\View\BlockView;
 use Loader;
 use \Concrete\Core\Foundation\Object;
 use Controller;
@@ -50,7 +51,7 @@ class BlockControl extends Control
         $b->deleteBlock();
     }
 
-    protected function getPageTypeComposerControlBlockObject(Page $c)
+    public function getPageTypeComposerControlBlockObject(Page $c)
     {
         $db = Loader::db();
         if (!is_object($this->b)) {
@@ -222,7 +223,30 @@ class BlockControl extends Control
             $template = FILENAME_BLOCK_COMPOSER;
         }
 
-        $this->inc($template, array('view' => $this, 'control' => $this, 'obj' => $obj, 'description' => $description));
+        $this->inc($template, array('control' => $this, 'obj' => $obj, 'description' => $description));
+    }
+
+    public function action($task)
+    {
+        $obj = $this->getPageTypeComposerControlDraftValue();
+        if (!is_object($obj)) {
+            // we don't have a page, an area, or ANYTHING YET.
+            $arguments = array('/ccm/system/block/action/add_composer',
+                $this->getPageTypeComposerFormLayoutSetControlObject()->getPageTypeComposerFormLayoutSetControlID(),
+                $task
+            );
+            return call_user_func_array(array('\URL', 'to'), $arguments);
+        } else {
+            $area = $obj->getBlockAreaObject();
+            $c = $area->getAreaCollectionObject();
+            $arguments = array('/ccm/system/block/action/edit_composer',
+                $c->getCollectionID(),
+                urlencode($area->getAreaHandle()),
+                $this->getPageTypeComposerFormLayoutSetControlObject()->getPageTypeComposerFormLayoutSetControlID(),
+                $task
+            );
+            return call_user_func_array(array('\URL', 'to'), $arguments);
+        }
     }
 
     public function inc($file, $args = array())
@@ -247,6 +271,8 @@ class BlockControl extends Control
         if ($obj->getPackageID() > 0) {
             $pkg = Package::getByID($obj->getPackageID());
         }
+
+        $view = $this;
 
         $path = $env->getPath(DIRNAME_BLOCKS . '/' . $obj->getBlockTypeHandle() . '/' . $file, $pkg);
         include($path);

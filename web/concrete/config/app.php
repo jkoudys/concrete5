@@ -274,6 +274,7 @@ return array(
         "/ccm/system/page/multilingual/create_new"                                      => array('\Concrete\Controller\Backend\Page\Multilingual::create_new'),
         "/ccm/system/page/multilingual/ignore"                                          => array('\Concrete\Controller\Backend\Page\Multilingual::ignore'),
         "/ccm/system/page/multilingual/unmap"                                           => array('\Concrete\Controller\Backend\Page\Multilingual::unmap'),
+        "/ccm/system/page/select_sitemap"                                           => array('\Concrete\Controller\Backend\Page\SitemapSelector::view'),
 
         /**
          * Block actions - non UI
@@ -281,6 +282,8 @@ return array(
         "/ccm/system/block/render/"                                                     => array('\Concrete\Controller\Backend\Block::render'),
         "/ccm/system/block/action/add/{cID}/{arHandle}/{btID}/{action}"                 => array('\Concrete\Controller\Backend\Block\Action::add'),
         "/ccm/system/block/action/edit/{cID}/{arHandle}/{bID}/{action}"                 => array('\Concrete\Controller\Backend\Block\Action::edit'),
+        "/ccm/system/block/action/add_composer/{ptComposerFormLayoutSetControlID}/{action}"  => array('\Concrete\Controller\Backend\Block\Action::add_composer'),
+        "/ccm/system/block/action/edit_composer/{cID}/{arHandle}/{ptComposerFormLayoutSetControlID}/{action}"  => array('\Concrete\Controller\Backend\Block\Action::edit_composer'),
 
         /**
          * Misc
@@ -396,18 +399,6 @@ return array(
          * Special Dashboard
          */
         "/dashboard/blocks/stacks/list"                                                 => array('\Concrete\Controller\SinglePage\Dashboard\Blocks\Stacks::list_page'),
-
-        /**
-         * Tools - legacy
-         */
-        "/tools/blocks/{btHandle}/{tool}"                                               => array(
-            '\Concrete\Core\Legacy\Controller\ToolController::displayBlock',
-            'blockTool',
-            array('tool' => '[A-Za-z0-9_/.]+')),
-        "/tools/{tool}"                                                                 => array(
-            '\Concrete\Core\Legacy\Controller\ToolController::display',
-            'tool',
-            array('tool' => '[A-Za-z0-9_/.]+')),
 
         /*
          * Assets localization
@@ -1026,6 +1017,7 @@ return array(
         )
     ),
     'curl' => array(
-        'verifyPeer' => true
+        'verifyPeer' => true,
+        'connectionTimeout' => 5
     )
 );
