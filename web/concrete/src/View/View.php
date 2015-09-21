@@ -348,6 +348,6 @@ class View extends AbstractView
         }
         $view = self::getRequestInstance();
 
-        include Environment::get()->getPath(DIRNAME_ELEMENTS.'/'.$_file.'.php', $_pkgHandle);
+        return include Environment::get()->getPath(DIRNAME_ELEMENTS.'/'.$_file.'.php', $_pkgHandle);
     }
 }
